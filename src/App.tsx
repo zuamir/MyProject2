@@ -22,6 +22,10 @@ interface Meal {
   [key: string]: string;
 }
 
+interface MealIdResponse {
+  meals: { idMeal: string }[] | null;
+}
+
 function getIngredients(meal: Meal): Ingredient[] {
   const out: Ingredient[] = [];
   for (let i = 1; i <= 20; i++) {
@@ -337,17 +341,24 @@ export default function App() {
 
     try {
       const mealListsPromises = searchIngredients.map(ingredient =>
-        fetch(`${API_BASE}/filter.php?i=${encodeURIComponent(ingredient)}`).then(res => res.json())
+        fetch(`${API_BASE}/filter.php?i=${encodeURIComponent(ingredient)}`).then(res => res.json() as Promise<MealIdResponse>)
       );
+      
       const mealListsResponses = await Promise.all(mealListsPromises);
 
-      if (mealListsResponses.some(response => !response.meals)) {
+      if (mealListsResponses.some(response => !response || !response.meals)) {
         setResults([]);
         setLoading(false);
         return;
       }
 
-      const mealIdSets = mealListsResponses.map(response => new Set(response.meals.map((meal: { idMeal: string }) => meal.idMeal)));
+      const mealIdSets = mealListsResponses.map(response => new Set(response.meals!.map((meal) => meal.idMeal)));
+
+      if (mealIdSets.length === 0) {
+        setResults([]);
+        setLoading(false);
+        return;
+      }
 
       const intersection = mealIdSets.reduce((acc, currentSet) => {
         return new Set([...acc].filter(id => currentSet.has(id)));
@@ -356,7 +367,7 @@ export default function App() {
       const commonMealIds = [...intersection];
 
       if (commonMealIds.length > 0) {
-        const mealDetailsPromises = commonMealIds.map((id: string) =>
+        const mealDetailsPromises = commonMealIds.map((id) =>
           fetch(`${API_BASE}/lookup.php?i=${id}`).then(res => res.json())
         );
         const mealDetailsResponses = await Promise.all(mealDetailsPromises);
