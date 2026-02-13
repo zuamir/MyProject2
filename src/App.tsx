@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import "./RecipeNutritionist.css";
 
 const API_BASE = "https://www.themealdb.com/api/json/v1/1";
-// IMPORTANT: Replace with your actual Anthropic API key
-const ANTHROPIC_API_KEY = "YOUR_ANTHROPIC_API_KEY_HERE";
+const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
 const SUGGESTIONS = ["Chicken","Salmon","Beef","Pork","Eggs","Potatoes","Onions","Tofu"];
 const GOALS = ["Weight Loss","Muscle Gain","Balanced Diet","Low Carb","High Protein","Vegetarian"];
@@ -79,7 +78,7 @@ function RecipeModal({ meal, onClose }: RecipeModalProps) {
   }, [onClose]);
 
   const analyze = async () => {
-    if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === "YOUR_ANTHROPIC_API_KEY_HERE") {
+    if (!ANTHROPIC_API_KEY) {
       setAnalysis("Please add your Anthropic API key to the script to use this feature.");
       return;
     }
@@ -185,7 +184,7 @@ function NutritionistTab() {
 
   const submit = async () => {
     if (!ingredients.trim()) return;
-    if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === "YOUR_ANTHROPIC_API_KEY_HERE") {
+    if (!ANTHROPIC_API_KEY) {
       setResult("Please add your Anthropic API key to the script to use this feature.");
       return;
     }
@@ -407,7 +406,7 @@ export default function App() {
     <>
       <div className="app">
         <header className="header">
-          <div className="logo">Mise <em>en</em> Place</div>
+          <div className="logo">Cookapedia</div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div className="header-pills">
               <button className={`pill ${tab === "search" ? "pill-active" : "pill-inactive"}`} onClick={() => setTab("search")}>Recipe Search</button>
