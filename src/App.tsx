@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import "./RecipeNutritionist.css";
 
 const API_BASE = "https://www.themealdb.com/api/json/v1/1";
+// IMPORTANT: Replace with your actual Anthropic API key
+const ANTHROPIC_API_KEY = "YOUR_ANTHROPIC_API_KEY_HERE";
 
 const SUGGESTIONS = ["Chicken","Salmon","Beef","Pork","Eggs","Potatoes","Onions","Tofu"];
 const GOALS = ["Weight Loss","Muscle Gain","Balanced Diet","Low Carb","High Protein","Vegetarian"];
@@ -62,10 +64,9 @@ function RecipeCard({ meal, onClick }: RecipeCardProps) {
 interface RecipeModalProps {
   meal: Meal;
   onClose: () => void;
-  apiKey: string;
 }
 
-function RecipeModal({ meal, onClose, apiKey }: RecipeModalProps) {
+function RecipeModal({ meal, onClose }: RecipeModalProps) {
   const [analysis, setAnalysis] = useState<string>("");
   const [analyzing, setAnalyzing] = useState<boolean>(false);
   const ingredients = getIngredients(meal);
@@ -78,7 +79,10 @@ function RecipeModal({ meal, onClose, apiKey }: RecipeModalProps) {
   }, [onClose]);
 
   const analyze = async () => {
-    if (!apiKey) return;
+    if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === "YOUR_ANTHROPIC_API_KEY_HERE") {
+      setAnalysis("Please add your Anthropic API key to the script to use this feature.");
+      return;
+    }
     setAnalyzing(true);
     setAnalysis("");
     const ingList = ingredients.map(i => `${i.measure} ${i.name}`).join(", ");
@@ -87,7 +91,10 @@ function RecipeModal({ meal, onClose, apiKey }: RecipeModalProps) {
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+        },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1000,
@@ -135,8 +142,8 @@ function RecipeModal({ meal, onClose, apiKey }: RecipeModalProps) {
             <div style={{ marginTop: 24 }}>
               <div className="modal-section-label">AI Nutrition Analysis</div>
               {!analysis && !analyzing && (
-                <button className="analyze-btn" onClick={analyze} disabled={!apiKey}>
-                  🥦 {apiKey ? "Analyze Nutrition" : "Add API key to analyze"}
+                <button className="analyze-btn" onClick={analyze}>
+                  🥦 Analyze Nutrition
                 </button>
               )}
               {analyzing && (
@@ -168,10 +175,7 @@ function RecipeModal({ meal, onClose, apiKey }: RecipeModalProps) {
 }
 
 // ── NUTRITIONIST TAB ──
-interface NutritionistTabProps {
-    apiKey: string;
-}
-function NutritionistTab({ apiKey }: NutritionistTabProps) {
+function NutritionistTab() {
   const [ingredients, setIngredients] = useState<string>("");
   const [calories, setCalories] = useState<string>("");
   const [goal, setGoal] = useState<string>("Balanced Diet");
@@ -180,7 +184,11 @@ function NutritionistTab({ apiKey }: NutritionistTabProps) {
   const [result, setResult] = useState<string | null>(null);
 
   const submit = async () => {
-    if (!ingredients.trim() || !apiKey) return;
+    if (!ingredients.trim()) return;
+    if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === "YOUR_ANTHROPIC_API_KEY_HERE") {
+      setResult("Please add your Anthropic API key to the script to use this feature.");
+      return;
+    }
     setLoading(true);
     setResult(null);
 
@@ -190,7 +198,10 @@ function NutritionistTab({ apiKey }: NutritionistTabProps) {
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+        },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1200,
@@ -288,12 +299,12 @@ function NutritionistTab({ apiKey }: NutritionistTabProps) {
           />
         </div>
 
-        <button className="submit-btn" onClick={submit} disabled={loading || !ingredients.trim() || !apiKey}>
+        <button className="submit-btn" onClick={submit} disabled={loading || !ingredients.trim()}>
           {loading ? "Consulting nutritionist…" : "Get My Recipe Plan"}
         </button>
 
         <div className="api-key-note">
-          ℹ️ This feature uses the Claude AI API. Enter your free Anthropic API key below. Get one at console.anthropic.com
+          ℹ️ This feature uses the Claude AI API.
         </div>
       </div>
 
@@ -327,8 +338,6 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(false);
   const [searched, setSearched] = useState<boolean>(false);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
-  const [apiKey, setApiKey] = useState<string>("");
-  const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
 
   const searchRecipes = useCallback(async (term: string, omit: string) => {
     if (!term.trim()) return;
@@ -404,28 +413,8 @@ export default function App() {
               <button className={`pill ${tab === "search" ? "pill-active" : "pill-inactive"}`} onClick={() => setTab("search")}>Recipe Search</button>
               <button className={`pill ${tab === "nutri" ? "pill-active" : "pill-inactive"}`} onClick={() => setTab("nutri")}>AI Nutritionist</button>
             </div>
-            <button
-              onClick={() => setShowKeyInput(v => !v)}
-              style={{ background:"transparent", border:"1px solid #2a2018", color: apiKey ? "#6db88a" : "#6a5a48", borderRadius: 4, padding:"6px 12px", cursor:"pointer", fontSize: 11, letterSpacing:"1px", fontFamily:"'Jost',sans-serif", fontWeight:500 }}
-            >
-              {apiKey ? "✓ API Key" : "API Key"}
-            </button>
           </div>
         </header>
-
-        {showKeyInput && (
-          <div style={{ background:"#1a1208", padding:"12px 48px", borderBottom:"1px solid #2a2018" }}>
-            <input
-              className="api-key-input"
-              style={{ maxWidth: 480, background:"#0d0a06", borderColor:"#2a2018", color:"#c8b090" }}
-              type="password"
-              placeholder="Paste your Anthropic API key (sk-ant-...)..."
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-            />
-            <p style={{ fontSize:11, color:"#5a4a38", marginTop:6 }}>Your key stays in this session only and is never stored.</p>
-          </div>
-        )}
 
         {tab === "search" && (
           <section className="hero">
@@ -513,11 +502,11 @@ export default function App() {
             </>
           )}
 
-          {tab === "nutri" && <NutritionistTab apiKey={apiKey} />}
+          {tab === "nutri" && <NutritionistTab />}
         </main>
 
         {selectedMeal && (
-          <RecipeModal meal={selectedMeal} onClose={() => setSelectedMeal(null)} apiKey={apiKey} />
+          <RecipeModal meal={selectedMeal} onClose={() => setSelectedMeal(null)} />
         )}
       </div>
     </>
